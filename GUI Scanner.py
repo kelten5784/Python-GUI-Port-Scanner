@@ -1,9 +1,24 @@
-import socket
-import ipaddress
-import concurrent.futures
+import json
 import tkinter as tk
-from tkinter import ttk
+import ipaddress
 import time
+import concurrent.futures
+from tkinter import ttk
+
+input_file = "user_input.json"
+
+def save_user_input(start_ip, end_ip, port):
+    data = {"start_ip": start_ip, "end_ip": end_ip, "port": port}
+    with open(input_file, "w") as file:
+        json.dump(data, file)
+
+def load_user_input():
+    try:
+        with open(input_file, "r") as file:
+            data = json.load(file)
+        return data["start_ip"], data["end_ip"], data["port"]
+    except (FileNotFoundError, json.JSONDecodeError):
+        return "", "", ""
 
 def scan_ip(ip, port):
     try:
@@ -16,9 +31,8 @@ def scan_ip(ip, port):
         return f"Error scanning IP {ip} on port {port}: {e}"
 
 def ip_scanner(start_ip, end_ip, port):
-    result_listbox.delete(0, tk.END)  # Clear previous results
-
-    batch_size = 10  # Adjust the batch size based on your preference
+    result_listbox.delete(0, tk.END)
+    batch_size = 10
 
     start = ipaddress.IPv4Address(start_ip)
     end = ipaddress.IPv4Address(end_ip)
@@ -34,56 +48,50 @@ def ip_scanner(start_ip, end_ip, port):
                 else:
                     result_listbox.insert(tk.END, f"IP {ip_str} on port {port} is closed or unreachable")
 
-            # Add a short delay between batches
+            root.update()
             time.sleep(0.1)
+
 def start_scan():
     start_ip = start_entry.get()
     end_ip = end_entry.get()
     port = int(port_entry.get())
-    
+    save_user_input(start_ip, end_ip, port)
     ip_scanner(start_ip, end_ip, port)
 
-# Create the main window
 root = tk.Tk()
-root.title("Pretty Pink IP Scanner")
+root.title("Remembering User Input")
 
-# Configure a style for the pink theme
-style = ttk.Style()
-style.configure("TButton", foreground="white", background="#ff66b2")  # Pink button style
-style.configure("TLabel", foreground="#ff66b2", background="white")   # Pink label style
-style.configure("TEntry", foreground="black", background="#ffd9eb")  # Light pink entry style
-style.configure("TListbox", foreground="black", background="#ffd9eb")  # Light pink listbox style
+default_start, default_end, default_port = load_user_input()
 
-# Create and pack widgets with pink theme
 start_label = ttk.Label(root, text="Enter Start IP:")
 start_label.pack(pady=10)
 
 start_entry = ttk.Entry(root, style="TEntry")
+start_entry.insert(0, default_start)
 start_entry.pack(pady=10)
 
 end_label = ttk.Label(root, text="Enter End IP:")
 end_label.pack(pady=10)
 
 end_entry = ttk.Entry(root, style="TEntry")
+end_entry.insert(0, default_end)
 end_entry.pack(pady=10)
 
 port_label = ttk.Label(root, text="Enter Port:")
 port_label.pack(pady=10)
 
 port_entry = ttk.Entry(root, style="TEntry")
+port_entry.insert(0, str(default_port))
 port_entry.pack(pady=10)
+
+style = ttk.Style()
+style.configure("TButton", foreground="white", background="#ff66b2", font=("Arial", 12, "bold"))
 
 scan_button = ttk.Button(root, text="Scan", command=start_scan, style="TButton")
 scan_button.pack(pady=10)
 
-# Change the text color of the "Scan" button to black
-style.configure("TButton", foreground="black", background="#ff66b2")
-
 result_listbox = tk.Listbox(root, height=10, width=70)
 result_listbox.pack(pady=10)
+result_listbox.configure(bg="#ffd9eb", fg="black", font=("Arial", 10))
 
-# Configure the Listbox style
-result_listbox.configure(bg="#ffd9eb", fg="black")  # Set background and foreground colors
-
-# Start the GUI main loop
 root.mainloop()
